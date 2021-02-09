@@ -44,40 +44,39 @@ class MailFetcher
                     log_message('error','IMAP connection failed: '.$ex);
                     return false;
                 }
-                if(!$mailsIds){
-                    return false;
-                }
-                $mailbox->setAttachmentsDir($this->attachment_dir);
-                foreach ($mailsIds as $k => $v){
-                    $mail = $mailbox->getMail($mailsIds[$k]);
-                    $message = ($mail->textHtml) ? $this->cleanMessage($mail->textHtml) : $mail->textPlain;
-                    $toTicket = $this->parseToTicket($mail->fromName, $mail->fromAddress, $mail->subject, $message, $email->department_id);
-                    list($ticket_id, $message_id) = $toTicket;
-                    //Attachments
-                    $attachments = new Attachments();
-                    if(!empty($mail->getAttachments())){
-                        foreach ($mail->getAttachments() as $file){
-                            if(file_exists($file->filePath)){
-                                $fileInfo = new File($file->filePath);
-                                $size = $fileInfo->getSize();
-                                $file_type = $fileInfo->getMimeType();
-                                $filename = $fileInfo->getRandomName();
-                                $fileInfo->move($this->attachment_dir, $filename);
-                                $original_name = $file->name;
-                                $attachments->addFromTicket(
-                                    $ticket_id,
-                                    $message_id,
-                                    $original_name,
-                                    $filename,
-                                    $size,
-                                    $file_type
-                                );
+                if($mailsIds){
+                    $mailbox->setAttachmentsDir($this->attachment_dir);
+                    foreach ($mailsIds as $k => $v){
+                        $mail = $mailbox->getMail($mailsIds[$k]);
+                        $message = ($mail->textHtml) ? $this->cleanMessage($mail->textHtml) : $mail->textPlain;
+                        $toTicket = $this->parseToTicket($mail->fromName, $mail->fromAddress, $mail->subject, $message, $email->department_id);
+                        list($ticket_id, $message_id) = $toTicket;
+                        //Attachments
+                        $attachments = new Attachments();
+                        if(!empty($mail->getAttachments())){
+                            foreach ($mail->getAttachments() as $file){
+                                if(file_exists($file->filePath)){
+                                    $fileInfo = new File($file->filePath);
+                                    $size = $fileInfo->getSize();
+                                    $file_type = $fileInfo->getMimeType();
+                                    $filename = $fileInfo->getRandomName();
+                                    $fileInfo->move($this->attachment_dir, $filename);
+                                    $original_name = $file->name;
+                                    $attachments->addFromTicket(
+                                        $ticket_id,
+                                        $message_id,
+                                        $original_name,
+                                        $filename,
+                                        $size,
+                                        $file_type
+                                    );
+                                }
                             }
                         }
+                      if(MAIL_DELETE == true){
+                        $mailbox->deleteMail($mail->id);
+                      }
                     }
-                  if(MAIL_DELETE == true){
-                      $mailbox->deleteMail($mail->id);
-                  }
                 }
                 $mailbox->disconnect();
             }
